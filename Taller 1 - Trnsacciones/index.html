@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TransactCore</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+ 
+    :root {
+      --bg:        #F2F1ED;
+      --white:     #FFFFFF;
+      --ink:       #1C1C1C;
+      --ink2:      #4A4A4A;
+      --muted:     #9A9A9A;
+      --line:      #E2E0D9;
+      --green:     #1A7A4A;
+      --green-bg:  #EAF5EE;
+      --red:       #B83232;
+      --red-bg:    #FCEAEA;
+      --blue:      #1A4A8A;
+      --blue-bg:   #EAF0FA;
+      --amber:     #8A5A0A;
+      --amber-bg:  #FDF5E6;
+      --admin:     #3A1C8A;
+      --admin-bg:  #EEE8FF;
+      --radius:    10px;
+      --shadow:    0 2px 14px rgba(0,0,0,0.07);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.13);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      font-size: 15px;
+    }
+
+
+    #authScreen {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg);
+      padding: 20px;
+    }
+    .auth-box {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      width: 100%; max-width: 420px;
+      padding: 40px 36px;
+      animation: fadeUp .3s ease;
+    }
+    .auth-brand {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 28px;
+    }
+    .auth-brand-icon {
+      width: 32px; height: 32px;
+      background: var(--ink); color: var(--white);
+      border-radius: 8px; display: grid; place-items: center;
+      font-size: 15px; font-weight: 700;
+    }
+    .auth-brand-name { font-size: 1.1rem; font-weight: 700; }
+    .auth-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 6px; }
+    .auth-sub   { font-size: 0.83rem; color: var(--muted); margin-bottom: 28px; }
+
+    .auth-mode-switcher {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin-bottom: 24px;
+      background: var(--bg); border-radius: 10px; padding: 4px;
+    }
+    .auth-mode-btn {
+      padding: 9px; border-radius: 7px;
+      border: none; background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.84rem; font-weight: 500;
+      cursor: pointer; transition: all .15s;
+      color: var(--muted);
+    }
+    .auth-mode-btn.active {
+      background: var(--white);
+      color: var(--ink);
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .role-switcher {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; margin-bottom: 24px;
+    }
+    .role-btn {
+      padding: 10px; border-radius: 8px;
+      border: 2px solid var(--line);
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.83rem; font-weight: 500;
+      cursor: pointer; transition: all .15s;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 5px; color: var(--muted);
+    }
+    .role-btn .role-icon { font-size: 1.3rem; }
+    .role-btn.active-user  { border-color: var(--blue);  color: var(--blue);  background: var(--blue-bg); }
+    .role-btn.active-admin { border-color: var(--admin); color: var(--admin); background: var(--admin-bg); }
+
+    .auth-error {
+      background: var(--red-bg); color: var(--red);
+      border: 1px solid #f5c6c2; border-radius: 8px;
+      padding: 10px 14px; font-size: 0.82rem;
+      margin-bottom: 14px; display: none;
+    }
+    .auth-error.visible { display: block; }
+    
+    .auth-success {
+      background: var(--green-bg); color: var(--green);
+      border: 1px solid #b8dfc7; border-radius: 8px;
+      padding: 10px 14px; font-size: 0.82rem;
+      margin-bottom: 14px; display: none;
+    }
+    .auth-success.visible { display: block; }
+
+    .auth-hint {
+      text-align: center; font-size: 0.75rem; color: var(--muted);
+      margin-top: 18px; font-family: 'DM Mono', monospace;
+      background: var(--bg); border-radius: 8px; padding: 10px;
+      line-height: 1.8;
+    }
+
+    .auth-switch-link {
+      text-align: center; font-size: 0.82rem; color: var(--muted);
+      margin-top: 18px;
+    }
+    .auth-switch-link button {
+      background: none; border: none;
+      color: var(--blue); font-weight: 600;
+      cursor: pointer; text-decoration: underline;
+    }
+
+
+    #appShell { display: none; }
+
+
+    nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--line);
+      padding: 0 28px;
+      display: flex; align-items: center;
+      height: 54px; gap: 0;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.95rem; font-weight: 700;
+      margin-right: 24px; flex-shrink: 0;
+    }
+    .nav-brand-icon {
+      width: 26px; height: 26px;
+      background: var(--ink); color: var(--white);
+      border-radius: 6px; display: grid; place-items: center;
+      font-size: 12px;
+    }
+    .nav-tabs { display: flex; gap: 2px; flex: 1; }
+    .tab-btn {
+      padding: 7px 16px; border: none; background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem; font-weight: 500;
+      color: var(--muted); cursor: pointer;
+      border-radius: 7px; transition: all .15s;
+    }
+    .tab-btn:hover  { background: var(--bg); color: var(--ink); }
+    .tab-btn.active { background: var(--bg); color: var(--ink); font-weight: 600; }
+
+    .nav-right {
+      display: flex; align-items: center; gap: 10px;
+      flex-shrink: 0;
+    }
+    .session-info {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.8rem;
+    }
+    .session-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 0.75rem; font-weight: 700; color: var(--white);
+    }
+    .session-name  { font-weight: 600; }
+    .session-role  {
+      font-size: 0.68rem; padding: 2px 8px;
+      border-radius: 20px; font-weight: 600;
+    }
+    .role-tag-admin { background: var(--admin-bg); color: var(--admin); }
+    .role-tag-user  { background: var(--blue-bg);  color: var(--blue); }
+
+    .btn-logout {
+      padding: 6px 14px; border-radius: 7px;
+      border: 1.5px solid var(--line);
+      background: transparent; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem; font-weight: 500;
+      color: var(--ink2); transition: all .15s;
+    }
+    .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+
+    .page { display: none; max-width: 900px; margin: 0 auto; padding: 30px 20px; }
+    .page.active { display: block; animation: fadeUp .2s ease; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .page-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 4px; }
+    .page-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 22px; }
+
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card-body  { padding: 22px; }
+    .card-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 14px; }
+
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 13px; }
+    .field:last-child { margin-bottom: 0; }
+    label { font-size: 0.75rem; font-weight: 500; color: var(--ink2); }
+    input, select {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--line); border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem; color: var(--ink);
+      background: var(--white); outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type="password"] { letter-spacing: 2px; }
+    input:focus, select:focus {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(28,28,28,0.07);
+    }
+    input::placeholder { color: var(--muted); letter-spacing: 0; }
+
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 9px 20px; border: none; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.86rem; font-weight: 600;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .btn-dark    { background: var(--ink); color: #fff; }
+    .btn-dark:hover  { background: #333; }
+    .btn-dark:active { transform: scale(.98); }
+    .btn-dark:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+    .btn-outline { background: var(--white); border: 1.5px solid var(--line); color: var(--ink2); }
+    .btn-outline:hover { border-color: #aaa; color: var(--ink); }
+    .btn-red    { background: var(--red-bg); color: var(--red); border: 1.5px solid #f0b8b8; }
+    .btn-red:hover { background: #f9d9d9; }
+    .btn-green  { background: var(--green-bg); color: var(--green); border: 1.5px solid #a8d9bc; }
+    .btn-green:hover { background: #d5eedd; }
+    .btn-sm   { padding: 6px 12px; font-size: 0.78rem; }
+    .btn-full { width: 100%; }
+
+
+    .users-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 11px;
+    }
+    .user-card {
+      background: var(--white); border: 1.5px solid var(--line);
+      border-radius: var(--radius); padding: 15px;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .user-card:hover { border-color: #bbb; box-shadow: var(--shadow); }
+    .user-card-top { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      color: var(--white); display: grid; place-items: center;
+      font-weight: 700; font-size: 0.82rem; flex-shrink: 0;
+    }
+    .user-name    { font-weight: 600; font-size: 0.88rem; }
+    .user-id      { font-size: 0.7rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+    .user-balance { font-family: 'DM Mono', monospace; font-size: 1.05rem; font-weight: 500; color: var(--green); }
+    .user-actions { display: flex; gap: 6px; }
+
+
+    .my-balance-card {
+      background: var(--ink); color: var(--white);
+      border-radius: 14px; padding: 24px 26px;
+      margin-bottom: 22px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .my-balance-label { font-size: 0.78rem; opacity: .6; margin-bottom: 6px; }
+    .my-balance-amount { font-size: 2rem; font-weight: 700; font-family: 'DM Mono', monospace; }
+    .my-balance-id { font-size: 0.72rem; font-family: 'DM Mono', monospace; opacity: .5; margin-top: 4px; }
+    .my-balance-icon { font-size: 2.4rem; opacity: .2; }
+
+
+    .tx-preview {
+      background: var(--bg); border: 1.5px solid var(--line);
+      border-radius: 8px; padding: 13px 15px;
+      margin: 4px 0 13px; display: none;
+    }
+    .tx-preview.visible { display: block; }
+    .prev-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.83rem; margin-bottom: 5px;
+    }
+    .prev-row:last-child { margin-bottom: 0; }
+    .prev-label { color: var(--ink2); }
+    .prev-val   { font-family: 'DM Mono', monospace; font-weight: 500; }
+    .prev-total-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.9rem; font-weight: 600;
+      padding-top: 9px; margin-top: 5px;
+      border-top: 1px solid var(--line);
+    }
+
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; padding: 9px 13px;
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .8px;
+      border-bottom: 1.5px solid var(--line);
+    }
+    tbody tr { border-bottom: 1px solid var(--bg); transition: background .1s; }
+    tbody tr:hover { background: #fafaf8; }
+    td { padding: 10px 13px; font-size: 0.84rem; vertical-align: middle; }
+    td.mono { font-family: 'DM Mono', monospace; font-size: 0.78rem; }
+
+ 
+    .badge {
+      display: inline-block; padding: 2px 9px;
+      border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+    }
+    .b-transfer   { background:var(--blue-bg);  color:var(--blue); }
+    .b-deposit    { background:var(--green-bg); color:var(--green); }
+    .b-withdrawal { background:var(--red-bg);   color:var(--red); }
+    .b-payment    { background:var(--amber-bg); color:var(--amber); }
+    .b-ok   { background:var(--green-bg); color:var(--green); }
+    .b-fail { background:var(--red-bg);   color:var(--red); }
+    .amount-pos { color:var(--green); font-weight:600; }
+    .amount-neg { color:var(--red);   font-weight:600; }
+
+
+    .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 11px; margin-bottom: 22px; }
+    .stat-box {
+      background: var(--white); border: 1.5px solid var(--line);
+      border-radius: var(--radius); padding: 15px 17px;
+    }
+    .stat-lbl { font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; font-weight: 500; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; font-family: 'DM Mono', monospace; }
+    .sv-green { color: var(--green); }
+    .sv-red   { color: var(--red); }
+
+
+    .divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+ 
+    .modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.28); z-index: 200; place-items: center;
+    }
+    .modal-bg.open { display: grid; }
+    .modal {
+      background: var(--white); border-radius: 14px;
+      padding: 26px; width: 340px;
+      box-shadow: var(--shadow-lg);
+      animation: fadeUp .2s ease;
+    }
+    .modal-title { font-size: 0.98rem; font-weight: 600; margin-bottom: 16px; }
+    .modal-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 16px; }
+
+
+    #toastWrap { position:fixed; bottom:22px; right:22px; display:flex; flex-direction:column; gap:7px; z-index:999; }
+    .toast {
+      padding: 11px 16px; border-radius: 8px;
+      font-size: 0.82rem; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      animation: slideUp .2s ease; max-width: 300px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.11);
+    }
+    @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .toast.ok   { background:var(--green-bg); color:var(--green); border:1px solid #b0d9c0; }
+    .toast.err  { background:var(--red-bg);   color:var(--red);   border:1px solid #f0b8b8; }
+    .toast.info { background:var(--blue-bg);  color:var(--blue);  border:1px solid #b0c8e8; }
+
+ 
+    .empty { text-align:center; padding:44px 20px; color:var(--muted); font-size:.85rem; }
+    .empty-icon { font-size:2rem; margin-bottom:9px; opacity:.45; }
+
+ 
+    .sec-list { display:flex; flex-direction:column; gap:8px; }
+    .sec-item {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:11px 14px; background:var(--bg);
+      border-radius:8px; font-size:.84rem;
+    }
+    .sec-item-left { display:flex; align-items:center; gap:10px; }
+    .sec-item-icon { font-size:1.1rem; }
+    .sec-item-name { font-weight:500; }
+    .sec-item-desc { font-size:.73rem; color:var(--muted); }
+    .indicator { font-size:.72rem; font-family:'DM Mono',monospace; font-weight:600; }
+    .ind-on  { color:var(--green); }
+    .ind-off { color:var(--red); }
+
+
+    @media(max-width:620px){
+      nav { padding:0 14px; }
+      .tab-btn { padding:7px 10px; font-size:.8rem; }
+      .page { padding:18px 13px; }
+      .form-row { grid-template-columns:1fr; }
+      .stats-row { grid-template-columns:1fr 1fr; }
+      .stats-row .stat-box:last-child { grid-column:1/-1; }
+      .my-balance-icon { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-brand">
+      <div class="auth-brand-icon">T</div>
+      <span class="auth-brand-name">Banco - Transacciones</span>
+    </div>
+
+
+    <div class="auth-mode-switcher">
+      <button class="auth-mode-btn active" id="modeLogin" onclick="Auth.switchMode('login')">
+        Iniciar sesión
+      </button>
+      <button class="auth-mode-btn" id="modeRegister" onclick="Auth.switchMode('register')">
+        Registrarse
+      </button>
+    </div>
+
+    <div id="loginView">
+      <div class="auth-title">Bienvenido</div>
+      <div class="auth-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="role-switcher">
+        <button class="role-btn active-user" id="roleBtnUser" onclick="Auth.selectRole('user')">
+          <span class="role-icon">👤</span>Usuario
+        </button>
+        <button class="role-btn" id="roleBtnAdmin" onclick="Auth.selectRole('admin')">
+          <span class="role-icon">🛡️</span>Administrador
+        </button>
+      </div>
+
+      <div class="auth-error" id="loginError"></div>
+
+      <div class="field">
+        <label>Usuario</label>
+        <input type="text" id="loginUser" placeholder="Tu nombre de usuario"
+          onkeydown="if(event.key==='Enter') Auth.login()"/>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="loginPass" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter') Auth.login()"/>
+      </div>
+      <button class="btn btn-dark btn-full" style="margin-top:6px" onclick="Auth.login()">
+        Entrar →
+      </button>
+
+      
+    </div>
+
+    <div id="registerView" style="display:none">
+      <div class="auth-title">Crear cuenta</div>
+      <div class="auth-sub">Regístrate para empezar a usar TransactCore</div>
+
+      <div class="auth-error" id="registerError"></div>
+      <div class="auth-success" id="registerSuccess"></div>
+
+      <div class="field">
+        <label>Nombre completo</label>
+        <input type="text" id="regName" placeholder="Ej. Ana García" maxlength="50"/>
+      </div>
+      <div class="field">
+        <label>Usuario (para login)</label>
+        <input type="text" id="regUsername" placeholder="Ej. ana.garcia" maxlength="30"/>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"/>
+      </div>
+      <div class="field">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="regPasswordConfirm" placeholder="Repite tu contraseña"
+          onkeydown="if(event.key==='Enter') Auth.register()"/>
+      </div>
+      <button class="btn btn-dark btn-full" style="margin-top:6px" onclick="Auth.register()">
+        Crear cuenta →
+      </button>
+
+    
+    </div>
+  </div>
+</div>
+
+
+<div id="appShell">
+  <nav>
+    <div class="nav-brand">
+      <div class="nav-brand-icon">T</div>
+      TransactCore
+    </div>
+    <div class="nav-tabs" id="navTabs"></div>
+    <div class="nav-right">
+      <div class="session-info">
+        <div class="session-avatar" id="sessionAvatar"></div>
+        <div>
+          <div class="session-name" id="sessionName"></div>
+          <span class="session-role" id="sessionRole"></span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="Auth.logout()">Salir</button>
+    </div>
+  </nav>
+
+
+  <div class="page" id="page-admin-usuarios">
+    <div class="page-title">Gestión de Usuarios</div>
+    <div class="page-sub">Administra usuarios registrados</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+      <span style="font-size:.88rem;font-weight:600;color:var(--ink2)">
+        Usuarios <span id="userCount" style="font-weight:400;color:var(--muted)"></span>
+      </span>
+    </div>
+    <div id="usersGrid" class="users-grid">
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">👤</div>Sin usuarios registrados
+      </div>
+    </div>
+  </div>
+
+
+  <div class="page" id="page-admin-historial">
+    <div class="page-title">Historial Global</div>
+    <div class="page-sub">Todas las transacciones del sistema</div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-lbl">Total transacciones</div>
+        <div class="stat-val" id="sTotal">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Volumen total</div>
+        <div class="stat-val sv-green" id="sVolume">$0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Rechazadas</div>
+        <div class="stat-val sv-red" id="sFailed">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--line)">
+          <span style="font-size:.88rem;font-weight:600">Transacciones</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-dark btn-sm" onclick="AdminPanel.exportJSON()">↓ JSON</button>
+            <button class="btn btn-outline btn-sm" onclick="AdminPanel.clearHistory()">Limpiar</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Usuario</th><th>Tipo</th>
+                <th>Monto</th><th>Comisión</th><th>Estado</th><th>Hora</th>
+              </tr>
+            </thead>
+            <tbody id="txBody">
+              <tr><td colspan="7">
+                <div class="empty"><div class="empty-icon">📋</div>Sin transacciones</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="page" id="page-admin-seguridad">
+    <div class="page-title">Seguridad del Sistema</div>
+    <div class="page-sub">Estado de los mecanismos de protección activos</div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-body">
+        <div class="card-title">Capas de seguridad</div>
+        <div class="sec-list">
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <div class="sec-item-icon">🔐</div>
+              <div>
+                <div class="sec-item-name">Encriptación con bcrypt</div>
+                <div class="sec-item-desc">Contraseñas hasheadas con bcrypt en BD (SHA-256 fallback)</div>
+              </div>
+            </div>
+            <span class="indicator ind-on">● ACTIVO</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <div class="sec-item-icon">🛡️</div>
+              <div>
+                <div class="sec-item-name">Control de acceso por rol (RBAC)</div>
+                <div class="sec-item-desc">Usuarios no pueden acceder a vistas de administración</div>
+              </div>
+            </div>
+            <span class="indicator ind-on">● ACTIVO</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <div class="sec-item-icon">⏱️</div>
+              <div>
+                <div class="sec-item-name">Bloqueo por intentos fallidos</div>
+                <div class="sec-item-desc">Cuenta bloqueada tras 3 intentos incorrectos</div>
+              </div>
+            </div>
+            <span class="indicator ind-on">● ACTIVO</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <div class="sec-item-icon">💾</div>
+              <div>
+                <div class="sec-item-name">Persistencia en base de datos</div>
+                <div class="sec-item-desc">Usuarios y transacciones almacenados en MySQL</div>
+              </div>
+            </div>
+            <span class="indicator ind-on">● ACTIVO</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <div class="sec-item-icon">💰</div>
+              <div>
+                <div class="sec-item-name">Validación de saldo</div>
+                <div class="sec-item-desc">Bloqueo antes de debitar · Evita saldo negativo</div>
+              </div>
+            </div>
+            <span class="indicator ind-on">● ACTIVO</span>
+          </div>
+          <div class="sec-item">
+            <div class="sec-item-left">
+              <div class="sec-item-icon">📋</div>
+              <div>
+                <div class="sec-item-name">Log de auditoría</div>
+                <div class="sec-item-desc">Cada acción registra actor, hora y resultado</div>
+              </div>
+            </div>
+            <span class="indicator ind-on">● ACTIVO</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Log de auditoría</div>
+        <div id="auditLog" style="font-family:'DM Mono',monospace;font-size:.75rem;line-height:2;max-height:260px;overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="page" id="page-user-cuenta">
+    <div class="page-title">Mi Cuenta</div>
+    <div class="page-sub">Resumen de tu cuenta y movimientos recientes</div>
+
+    <div class="my-balance-card">
+      <div>
+        <div class="my-balance-label">SALDO DISPONIBLE</div>
+        <div class="my-balance-amount" id="myBalanceAmount">$0.00</div>
+        <div class="my-balance-id" id="myBalanceId"></div>
+      </div>
+      <div class="my-balance-icon">💳</div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <div style="padding:13px 18px;border-bottom:1px solid var(--line);font-size:.88rem;font-weight:600">
+          Mis transacciones recientes
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Tipo</th><th>Monto</th><th>Comisión</th><th>Estado</th><th>Hora</th></tr>
+            </thead>
+            <tbody id="myTxBody">
+              <tr><td colspan="6">
+                <div class="empty"><div class="empty-icon">📋</div>Sin transacciones</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="page" id="page-user-transaccion">
+    <div class="page-title">Nueva Transacción</div>
+    <div class="page-sub">Registra una nueva operación financiera</div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="form-row" style="margin-bottom:13px">
+          <div class="field" style="margin-bottom:0">
+            <label>Tipo de transacción</label>
+            <select id="txType" onchange="UserPanel.toggleDest(); UserPanel.previewTx()">
+              <option value="deposit">Depósito</option>
+              <option value="withdrawal">Retiro</option>
+              <option value="transfer">Transferencia</option>
+              <option value="payment">Pago de servicio</option>
+            </select>
+          </div>
+          <div class="field" id="destField" style="margin-bottom:0">
+            <label>Usuario destino</label>
+            <select id="txDest">
+              <option value="">— Seleccionar —</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Monto ($)</label>
+          <input type="number" id="txAmount" placeholder="0.00" min="0.01" step="0.01" oninput="UserPanel.previewTx()"/>
+        </div>
+        <div class="field">
+          <label>Descripción (opcional)</label>
+          <input type="text" id="txDesc" placeholder="Ej. Pago de factura" maxlength="100"/>
+        </div>
+
+        <div class="tx-preview" id="txPreview">
+          <div class="prev-row">
+            <span class="prev-label">Monto</span>
+            <span class="prev-val" id="prevAmount"></span>
+          </div>
+          <div class="prev-row">
+            <span class="prev-label">Comisión</span>
+            <span class="prev-val" id="prevComm" style="color:var(--muted)"></span>
+          </div>
+          <div class="prev-total-row">
+            <span>Total a debitar</span>
+            <span class="prev-val" id="prevTotal"></span>
+          </div>
+        </div>
+
+        <button class="btn btn-dark btn-full" onclick="UserPanel.processTransaction()">
+          Procesar transacción →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-bg" id="editModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">Editar usuario</div>
+    <input type="hidden" id="editId"/>
+    <div class="field"><label>Nombre</label><input type="text" id="editName" maxlength="50"/></div>
+    <div class="field"><label>Saldo ($)</label><input type="number" id="editBalance" min="0" step="0.01"/></div>
+    <div class="field"><label>Nueva contraseña (dejar vacío para no cambiar)</label><input type="password" id="editPassword"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-dark" onclick="AdminPanel.saveEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastWrap"></div>
+
+
+<script src="app.js"></script>
+</body>
+</html>
